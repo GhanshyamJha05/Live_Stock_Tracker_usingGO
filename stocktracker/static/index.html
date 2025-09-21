@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Live Stock Tracker — Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Plotly for charts (candlestick + line) -->
+  <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+  <style>
+    :root{
+      --bg: #0b1220;
+      --card: #121a2b;
+      --muted: #98a2b3;
+      --text: #e6edf3;
+      --accent: #60a5fa;
+      --accent2: #22d3ee;
+      --good: #22c55e;
+      --bad: #ef4444;
+      --border: #1f2a44;
+      --shadow: 0 12px 40px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; background:radial-gradient(1200px 800px at 20% -10%, #15223a 0, var(--bg) 50%),
+                 radial-gradient(1000px 700px at 120% 10%, #0e1830 0, var(--bg) 60%);
+      color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      min-height:100vh;
+    }
+    .container{max-width:1200px; margin:28px auto; padding:0 16px;}
+    header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;}
+    h1{margin:0; font-size:22px; letter-spacing:.3px}
+    .controls{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+    input{
+      background:var(--card); color:var(--text); border:1px solid var(--border);
+      padding:10px 12px; border-radius:10px; min-width:220px; outline:none;
+    }
+    button{
+      background:linear-gradient(135deg,#2563eb,#0ea5e9); color:#fff; border:none;
+      padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600;
+      box-shadow: var(--shadow); transition: transform .06s ease;
+    }
+    button:active{transform:translateY(1px)}
+    .grid{display:grid; grid-template-columns: 1.4fr .8fr; gap:16px}
+    @media (max-width: 1000px){ .grid{ grid-template-columns: 1fr } }
+    .card{
+      background:linear-gradient(180deg,#0f172a,#0b1220); border:1px solid var(--border); border-radius:16px;
+      padding:16px; box-shadow: var(--shadow);
+    }
+    .stat{
+      display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; color:var(--muted)
+    }
+    .stat strong{color:var(--text)}
+    #chart{width:100%; height:480px}
+    table{width:100%; border-collapse:collapse; font-size:14px}
+    th,td{border-bottom:1px solid #1e2a46; padding:10px 8px; text-align:left}
+    th{color:#c8d3e0; font-weight:600}
+    tr:last-child td{border-bottom:none}
+    .pill{display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; font-size:12px}
+    .up{background:#0f2d1b; color:var(--good); border:1px solid #1d4f2d}
+    .down{background:#3a1114; color:var(--bad); border:1px solid #5d1e23}
+    .muted{color:var(--muted)}
+    .error{color:#ffb4b4; font-size:13px; margin-top:6px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📈 Live Stock Tracker</h1>
+      <div class="controls">
+        <input id="symbolInput" placeholder="Symbol (e.g., AAPL, TSLA, MSFT)" />
+        <button id="loadBtn">Load</button>
+      </div>
+    </header>
+
+    <div id="err" class="error" style="display:none;"></div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="stat">
+          <div class="muted">Symbol</div>
+          <strong id="symLabel">AAPL</strong>
+        </div>
+        <div class="stat">
+          <div class="muted">Last Price</div>
+          <div><span id="lastPrice">—</span> <span id="dir" class="pill muted" style="margin-left:8px;">—</span></div>
+        </div>
+        <div id="chart"></div>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Open</th>
+              <th>High</th>
+              <th>Low</th>
+              <th>Close</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ws;
+    let currentSymbol = "AAPL";
+    let lastPrice = null;
+
+    const symInput = document.getElementById("symbolInput");
+    const loadBtn = document.getElementById("loadBtn");
+    const errBox = document.getElementById("err");
+    const symLabel = document.getElementById("symLabel");
+    const lastPriceEl = document.getElementById("lastPrice");
+    const dirEl = document.getElementById("dir");
+    const rows = document.getElementById("rows");
+
+    function showError(msg){
+      errBox.style.display = "block";
+      errBox.textContent = msg;
+      setTimeout(()=>{ errBox.style.display = "none"; }, 4000);
+    }
+
+    function fmt(n){ return Number(n).toFixed(2); }
+    function fmtTime(ts){ const d = new Date(ts*1000); return d.toLocaleTimeString(); }
+    function setDir(delta){
+      if (delta > 0){ dirEl.className = "pill up"; dirEl.textContent = "↑ up"; }
+      else if (delta < 0){ dirEl.className = "pill down"; dirEl.textContent = "↓ down"; }
+      else { dirEl.className = "pill muted"; dirEl.textContent = "→ stable"; }
+    }
+
+    // ---------- Plotly Chart ----------
+    let layout = {
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { color: '#d6e2f0' },
+      xaxis: { gridcolor: 'rgba(255,255,255,0.06)', rangeselector: { buttons: [
+        {step:'minute', stepmode:'backward', count:15, label:'15m'},
+        {step:'minute', stepmode:'backward', count:30, label:'30m'},
+        {step:'minute', stepmode:'backward', count:60, label:'1h'},
+        {step:'all', label:'All'}
+      ]}},
+      yaxis: { gridcolor: 'rgba(255,255,255,0.06)' },
+      margin: {l: 40, r: 20, t: 10, b: 30},
+      showlegend: false,
+    };
+
+    let candleTrace = { type:'candlestick', x:[], open:[], high:[], low:[], close:[], increasing: {line:{color:'#22c55e'}}, decreasing:{line:{color:'#ef4444'}} };
+    let liveTrace = { type:'scatter', mode:'lines', x:[], y:[], line:{color:'#60a5fa', width:2}, hovertemplate:'%{y:.2f}<extra>Live</extra>' };
+
+    Plotly.newPlot('chart', [candleTrace, liveTrace], layout, {responsive:true, displayModeBar:true});
+
+    function renderCandles(data){
+      const times = data.t.map(t=> new Date(t*1000));
+      candleTrace.x = times;
+      candleTrace.open  = data.o;
+      candleTrace.high  = data.h;
+      candleTrace.low   = data.l;
+      candleTrace.close = data.c;
+
+      // Fill table
+      rows.innerHTML = "";
+      for (let i = data.t.length-1; i >= Math.max(0, data.t.length-30); i--) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${fmtTime(data.t[i])}</td>
+          <td>${fmt(data.o[i])}</td>
+          <td>${fmt(data.h[i])}</td>
+          <td>${fmt(data.l[i])}</td>
+          <td>${fmt(data.c[i])}</td>
+        `;
+        rows.appendChild(tr);
+      }
+
+      Plotly.update('chart', { x:[times, liveTrace.x], open:[data.o], high:[data.h], low:[data.l], close:[data.c] }, {}, [0,1]);
+    }
+
+    function pushLivePoint(tsMs, price){
+      const t = new Date(tsMs);
+      liveTrace.x.push(t);
+      liveTrace.y.push(price);
+      if (liveTrace.x.length > 240) { liveTrace.x.shift(); liveTrace.y.shift(); }
+      Plotly.update('chart', { x:[candleTrace.x, liveTrace.x], y:[null, liveTrace.y] }, {}, [0,1]);
+    }
+
+    async function loadSymbol(sym){
+      const s = sym.toUpperCase().trim();
+      if (!s || /[^A-Z.]/.test(s)) { showError("Enter a valid symbol (A–Z and dot)"); return; }
+      currentSymbol = s;
+      symLabel.textContent = s;
+
+      // Load 1-minute candles (last 60 minutes by default)
+      try{
+        const resp = await fetch(`/api/candles?symbol=${encodeURIComponent(s)}&minutes=60`);
+        const data = await resp.json();
+        if (data.status !== "ok" || !data.t || data.t.length === 0){
+          showError("No data for symbol (market closed or invalid)");
+        }
+        renderCandles(data);
+        // Set last price from last candle close
+        if (data.c && data.c.length){
+          const lp = Number(data.c[data.c.length-1]);
+          if (!isNaN(lp)) {
+            if (lastPrice != null) setDir(lp - lastPrice);
+            lastPrice = lp;
+            lastPriceEl.textContent = fmt(lp);
+          }
+        }
+      }catch(e){
+        console.error(e);
+        showError("Failed to load historical data");
+      }
+
+      // (Re)connect websocket for live price
+      if (ws) { try{ ws.close(); }catch{} }
+      ws = new WebSocket(`ws://${location.host}/ws?symbol=${encodeURIComponent(s)}`);
+      ws.onmessage = (ev) => {
+        const msg = JSON.parse(ev.data);
+        const p = Number(msg.price);
+        if (!isNaN(p)){
+          if (lastPrice != null) setDir(p - lastPrice);
+          lastPrice = p;
+          lastPriceEl.textContent = fmt(p);
+          pushLivePoint(msg.time, p);
+        }
+      };
+      ws.onerror = () => showError("Live connection error");
+    }
+
+    // Initial load
+    loadSymbol(currentSymbol);
+
+    // Controls
+    document.getElementById("loadBtn").onclick = () => loadSymbol(symInput.value || currentSymbol);
+    symInput.addEventListener("keypress", (e)=>{ if (e.key === "Enter") loadSymbol(symInput.value || currentSymbol); });
+  </script>
+</body>
+</html>
