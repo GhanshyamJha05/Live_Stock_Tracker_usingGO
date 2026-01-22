@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Real-time stock price tracker with live WebSocket updates">
+    <title>Live Stock Tracker</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">📈 Stock Tracker</h1>
+                <div class="search-box">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Search stock symbol (e.g., AAPL)"
+                        class="search-input"
+                        autocomplete="off"
+                    >
+                    <button id="searchBtn" class="search-btn">Search</button>
+                </div>
+                <div class="header-info">
+                    <span class="info-item">
+                        Watching: <span id="trackedCount">0</span>
+                    </span>
+                    <span class="info-item">
+                        Connected: <span id="connectionStatus" class="status-disconnected">●</span>
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Watchlist Section -->
+            <section class="watchlist-section">
+                <div class="section-header">
+                    <h2>Your Watchlist</h2>
+                    <button id="refreshBtn" class="refresh-btn" title="Refresh all prices">🔄 Refresh</button>
+                </div>
+
+                <div id="watchlistContainer" class="watchlist-container">
+                    <!-- Stock cards will be inserted here -->
+                </div>
+
+                <div id="noStocksMsg" class="empty-state">
+                    <p>📊 No stocks in watchlist. Search and add stocks to get started!</p>
+                </div>
+            </section>
+
+            <!-- Chart Section -->
+            <section class="chart-section" id="chartSection" style="display: none;">
+                <div class="chart-header">
+                    <h3 id="chartTitle">Stock Price Chart</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn" data-period="1d">1D</button>
+                        <button class="chart-btn" data-period="1w">1W</button>
+                        <button class="chart-btn active" data-period="1m">1M</button>
+                        <button class="chart-btn" data-period="3m">3M</button>
+                        <button class="chart-btn" data-period="1y">1Y</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Market Summary -->
+            <section class="market-summary-section">
+                <h2>Market Summary</h2>
+                <div id="marketSummary" class="market-summary">
+                    <!-- Summary will be inserted here -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Live Stock Tracker v1.0 | Real-time price updates via WebSocket | Data provided by stock APIs</p>
+        </footer>
+    </div>
+
+    <!-- Modal for adding stocks -->
+    <div id="addStockModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Stock to Watchlist</h2>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input 
+                    type="text" 
+                    id="modalSearchInput" 
+                    placeholder="Enter stock symbol"
+                    class="modal-input"
+                >
+                <div id="searchResults" class="search-results"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="addBtn" disabled>Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="/js/websocket.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

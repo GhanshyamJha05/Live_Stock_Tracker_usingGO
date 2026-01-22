@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  stock-tracker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: stock-tracker
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      ENV: production
+      API_PROVIDER: mock
+      STOCK_API_KEY: ""
+      UPDATE_INTERVAL: 5
+      MAX_CONNECTIONS: 1000
+    volumes:
+      - ./frontend:/root/frontend:ro
+    restart: unless-stopped
+    networks:
+      - stock-tracker-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+networks:
+  stock-tracker-network:
+    driver: bridge
