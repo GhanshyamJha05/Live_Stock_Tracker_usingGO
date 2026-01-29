@@ -19,63 +19,84 @@ A **production-ready, real-time stock tracking web application** built with Go b
 - ✅ **Auto Reconnection** - WebSocket with exponential backoff
 
 ### 🚀 Technical Features
-- ✅ **Next.js 15 Frontend** - Premium React-based dashboard with App Router
-- ✅ **Tailwind CSS & Framer Motion** - Stunning dark mode UI with fluid animations
-- ✅ **Recharts Integration** - Interactive, high-performance financial charts
-- ✅ **Multi-Provider Go Backend** - Finnhub, Alpha Vantage, or Mock data
-- ✅ **WebSocket Engine** - Real-time price streaming with auto-reconnection
-- ✅ **Docker Ready** - Multi-stage builds for both backend and frontend
+- ✅ **Multi-Provider API** - Finnhub, Alpha Vantage, or Mock data
+- ✅ **Goroutine-Based Concurrency** - Efficient background price updates
+- ✅ **In-Memory Caching** - 30-second TTL for optimal performance
+- ✅ **Docker Ready** - Multi-stage build, minimal image size
+- ✅ **Graceful Shutdown** - Proper signal handling
+- ✅ **CORS Configured** - Ready for cross-origin requests
+- ✅ **Health Checks** - Built-in monitoring endpoint
 
 ### 📱 Responsive Design
-- **Desktop** - Full-featured trading dashboard (1400px+)
-- **Tablet** - Optimized sidebar and grid layout (768px - 1399px)
-- **Mobile** - Touch-friendly card-based navigation (480px - 767px)
+- **Desktop** - Full-featured layout (1400px+)
+- **Tablet** - Optimized layout (768px - 1399px)
+- **Mobile** - Touch-friendly design (480px - 767px)
 
 ## 🎬 Quick Start
 
-### Frontend (Next.js)
+### Option 1: Docker (Fastest - 30 seconds)
 ```bash
-cd frontend
-npm install
-npm run dev
-# Open http://localhost:3000
+docker-compose up
+# Open http://localhost:8080
 ```
 
-### Backend (Go)
+### Option 2: Local Go
 ```bash
 cd backend
 go run main.go
-# Runs on http://localhost:8080
+# Open http://localhost:8080
 ```
+
+### Option 3: Manual Build
+```bash
+cd backend
+go build -o stock-tracker
+./stock-tracker
+```
+
+## 📋 Requirements
+
+- **Go**: 1.21 or higher
+- **Docker**: (optional, for containerization)
+- **API Key**: (optional, for real stock data)
 
 ## 🏗️ Architecture
 
-### Frontend (Modern UI)
-```
-frontend/
-├── app/                 # Next.js App Router (Layouts & Pages)
-├── components/          # Reusable UI (StockCard, StockChart, Search)
-├── hooks/               # Custom React Hooks (useStockData)
-├── lib/                 # Utilities (Formatting, Tailwind Merge)
-└── public/              # Static assets
-```
-
-**Key Technologies:**
-- **Next.js 15** - React Framework
-- **Recharts** - Financial Data Visualization
-- **Framer Motion** - Micro-animations
-- **Lucide React** - Premium Icons
-- **Tailwind CSS** - Modern Utility Styling
-
-### Backend (Go Engine)
+### Backend (Go)
 ```
 backend/
 ├── main.go              # Server entry point
-├── services/            # Stock price logic
-├── controllers/         # WebSocket & REST handlers
-└── websocket/           # Real-time Hub
+├── config/              # Configuration management
+├── models/              # Data structures
+├── utils/               # API client & helpers
+├── services/            # Business logic
+├── controllers/         # HTTP handlers
+├── routes/              # Route definitions
+├── middleware/          # CORS & error handling
+└── websocket/           # WebSocket hub
 ```
 
+**Key Technologies:**
+- **Gin** - HTTP framework
+- **Gorilla WebSocket** - Real-time communication
+- **godotenv** - Environment configuration
+
+### Frontend
+```
+frontend/
+├── index.html           # HTML structure
+├── css/
+│   └── styles.css       # Responsive styling (1100+ lines)
+└── js/
+    ├── websocket.js     # WebSocket client
+    └── app.js           # Application logic (780 lines)
+```
+
+**Key Technologies:**
+- **Chart.js** - Price visualization
+- **Vanilla JS** - No frameworks, lightweight
+- **CSS3** - Modern responsive design
+- **LocalStorage** - Data persistence
 
 ## 📡 API Endpoints
 
