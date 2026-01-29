@@ -10,7 +10,7 @@ import (
 	"stock-tracker/websocket"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
+	gwebsocket "github.com/gorilla/websocket"
 )
 
 // StockController handles HTTP requests related to stocks
@@ -119,7 +119,7 @@ func (sc *StockController) GetDefaults(c *gin.Context) {
 // GET /ws
 func (sc *StockController) WebSocketHandler(c *gin.Context) {
 	// Upgrade HTTP connection to WebSocket
-	upgrader := websocket.Upgrader{
+	upgrader := gwebsocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
 			// In production, validate origin more carefully
 			return true
@@ -147,7 +147,7 @@ func (sc *StockController) WebSocketHandler(c *gin.Context) {
 	}
 
 	// Register client
-	sc.wsHub.register <- client
+	sc.wsHub.Register <- client
 
 	// Start reading and writing goroutines
 	go client.HandleClient()

@@ -14,8 +14,8 @@ import (
 type Hub struct {
 	clients       map[*Client]bool // Registered clients
 	broadcast     chan interface{} // Inbound messages from clients
-	register      chan *Client     // Register requests from clients
-	unregister    chan *Client     // Unregister requests from clients
+	Register      chan *Client     // Register requests from clients
+	Unregister    chan *Client     // Unregister requests from clients
 	mutex         sync.RWMutex     // Protects clients map
 	trackedStocks map[string]bool  // Symbols being tracked
 	stockMutex    sync.RWMutex     // Protects trackedStocks
@@ -43,8 +43,8 @@ func NewHub() *Hub {
 	return &Hub{
 		clients:       make(map[*Client]bool),
 		broadcast:     make(chan interface{}, 256),
-		register:      make(chan *Client),
-		unregister:    make(chan *Client),
+		Register:      make(chan *Client),
+		Unregister:    make(chan *Client),
 		trackedStocks: make(map[string]bool),
 	}
 }
@@ -53,11 +53,11 @@ func NewHub() *Hub {
 func (h *Hub) Run() {
 	for {
 		select {
-		case client := <-h.register:
+		case client := <-h.Register:
 			h.registerClient(client)
 			log.Printf("[Hub] Client registered: %s (Total: %d)", client.ID, len(h.clients))
 
-		case client := <-h.unregister:
+		case client := <-h.Unregister:
 			h.unregisterClient(client)
 			log.Printf("[Hub] Client unregistered: %s (Total: %d)", client.ID, len(h.clients))
 
@@ -152,7 +152,7 @@ func (h *Hub) GetClientCount() int {
 // HandleClient manages incoming and outgoing messages for a client
 func (c *Client) HandleClient() {
 	defer func() {
-		c.Hub.unregister <- c
+		c.Hub.Unregister <- c
 		c.Conn.Close()
 	}()
 
@@ -225,8 +225,6 @@ func (c *Client) WriteMessages() {
 	defer c.Conn.Close()
 
 	for message := range c.Send {
-		c.Conn.SetWriteDeadline(nil) // No deadline for writes
-
 		if err := c.Conn.WriteJSON(message); err != nil {
 			log.Printf("[Client %s] Write error: %v", c.ID, err)
 			return

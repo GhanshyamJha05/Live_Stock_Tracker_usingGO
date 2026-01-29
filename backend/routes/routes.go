@@ -14,7 +14,7 @@ func SetupRoutes(router *gin.Engine, stockController *controllers.StockControlle
 	router.Use(middleware.ErrorHandler())
 
 	// Static files serving
-	router.Static("/", "./frontend")
+	// router.Static("/", "./frontend")
 
 	// API endpoints
 	api := router.Group("/api")
